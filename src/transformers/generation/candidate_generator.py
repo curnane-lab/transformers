@@ -1444,8 +1444,9 @@ class MTPCandidateGenerator(AssistedCandidateGenerator):
                 "mtp weights."
             )
 
-        # Heuristic: use the device of the last layer of the main model for the MTP layers
-        self.device = next(x.device for x in main_model.base_model.layers[-1].parameters())  # type: ignore
+        # Heuristic: use the device of the last layer of the text tower for the MTP layers
+        base_model = getattr(main_model.base_model, "language_model", main_model.base_model)
+        self.device = next(x.device for x in base_model.layers[-1].parameters())  # type: ignore
         self.mtp_model = MtpModel.from_pretrained(main_model, device_map={"": self.device})
 
         # Artificially add the MTP layers to the cache
@@ -1489,7 +1490,7 @@ class MTPCandidateGenerator(AssistedCandidateGenerator):
         # We want to slice to get data for positions [3, 4] for the 1st mtp layer, i.e. same as main model, shifted by 1 to the right.
         num_last_main_model_tokens = n_last_matches + 1 if not self.is_main_model_prefill else input_ids.shape[1] - 1
         mtp_input_ids = input_ids[:, -num_last_main_model_tokens:]
-        mtp_position_ids = model_kwargs["position_ids"][:, -num_last_main_model_tokens:]
+        mtp_position_ids = model_kwargs["position_ids"][..., -num_last_main_model_tokens:]
         mtp_attention_mask = model_kwargs["attention_mask"][:, -num_last_main_model_tokens:]
 
         # The hidden states have seq_len equal to the last main model's forward pass on all the candidates. We need the
