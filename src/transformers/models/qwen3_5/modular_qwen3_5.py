@@ -367,7 +367,7 @@ class Qwen3_5DecoderLayer(GradientCheckpointingLayer):
     def __init__(self, config: Qwen3_5TextConfig, layer_idx: int):
         super().__init__()
         self.hidden_size = config.hidden_size
-        self.block_type = config.layer_types[layer_idx]
+        self.block_type = config.layer_types[layer_idx] if layer_idx < len(config.layer_types) else "full_attention"
         if self.block_type == "linear_attention":
             self.linear_attn = Qwen3_5GatedDeltaNet(config, layer_idx)
         elif self.block_type == "full_attention":
